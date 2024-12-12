@@ -1,0 +1,72 @@
+JIO sip trunk details:
+
+            Once you have purchased  the new jio sip trunk, you will be provided with below details
+
+DID numbers
+Pilot number
+SIP gateway IP & Media IP
+Jio Network subnet range (server IP,subnet, gateway IP)
+
+  Step 1: Network Connection
+            As show in picture above ,connect your Asterisk server to the JIO network and assign the IP address from the subnet provided by jio either to a second ethernet or existing ethernet port(based on your network design).
+The network configuration is not covered here , it might defer between OS type you are using, but concept is same.
+
+  Step 2:  JIO SIP Proxy Static route
+       If you are connecting JIO to your existing networks as pre the picture shown, then you might need a dedicate route to reach the JIO SIP Proxy also media ip.
+Strict RTP switching to RTP target address 
+Check your OS network settings to set static route to jio network.
+Sample JIO Sip details
+
+SIP proxy ip    :100.64.216.4
+Media IP          :100.64.216.4
+ServerIP           : 100.65.161.116
+gateway ip       :100.65.161.113
+interface           : Eth1
+Centos 7 command to set a static route to SIP proxy ip and media ip
+
+ip route add 100.64.216.4 via 100.65.161.113 dev eth1
+ip route add 100.64.216.5 via 100.65.161.113 dev eth1
+Command to check the routes
+ip route show 
+or
+route -n
+  Step 3: JIO SIP peer configuration sip.conf
+     Once you have setup the network , make sure you are able to reach the JIO gateway and SIP gateway ip by ping command.
+       enter the below sip settings in you asterisk sip.conf,  if are using Freepbx you can create the same in Gui trunk settings, similar for vicidial/goautodial under carrier settings.
+
+[jiosiptrunk]
+
+type=friend
+disallow=all
+allow=alaw
+allow=ulaw
+allow=g729
+host=100.XXX.XXX.XXX ;this is jio sip proxy ip
+fromdomain=100.XXX.XXX.XXX ;this is jio sip proxy ip
+qualify=yes
+dtmfmode=rfc2833
+nat=no
+context=from-trunk  ;context to receive inbound calls
+sendrpid=yes
+trustrpid=yes
+
+  Step 4: asterisk dialplan for jio sip
+Note: The key factor to dial out via JIO , you need to set proper caller-id while dialing out.
+Use the below dialplan , alter according to your requirement.
+For vanilla Asterisk :
+exten => _X.,1,Set(CALLERID(num)=+914412345678)
+exten => _X.,2,Dial(SIP/jiosiptrunk/${EXTEN})
+exten => _X.,3,Hangup
+;+914412345678 is my pilot no, you have to enter your pilot no or any number from the DID range
+
+Vicidial / Goautodial
+
+exten => _X.,1,AGI(agi://127.0.0.1:4577/call_log)
+exten => _X.,2,Set(CALLERID(num)=+914412345678)
+exten => _X.,3,Dial(SIP/jiosiptrunk/${EXTEN},,tTo)
+exten => _X.,4,Hangup
+;+914412345678 is my pilot no, you have to enter your pilot no or any number from the DID range
+
+Freepbx 
+    If  you want individual CID for each user make sure each user extension is configured with outbound callerid with there DID number. 
+For Freepbx, you need create outbound route , with necessary Dial pattern and make sure to set the ROUTE CID (either pilot or DID numbers)
