@@ -1,0 +1,56 @@
+JIO SIP trunk configuration in Asterisk & Vicidial
+JIO sip trunk details you need to ask to your JIO provider :
+DID numbers (Example 01234567890-01234567899)
+Pilot number (Example 01234567800)
+SIP gateway IP & Media IP 
+Jio Network IP which you need to put in your LAN card (server IP,subnet, gateway IP) 
+ 
+Step 2:  JIO SIP Proxy Static route
+Example JIO Sip details
+
+SIP proxy ip    :10.10.65.2
+Media IP          :10.10.65.2
+ServerIP           : 10.10.32.112
+gateway ip       :10.10.32.113
+interface           : Eth1
+
+ 
+
+Centos command to set a static route to SIP proxy ip and media ip (you can check in google as per your OS how to set static route in {your OS name}
+
+ip route add 10.10.65.2 via 10.10.32.113 dev eth1
+
+ 
+
+Step 3: JIO SIP peer configuration sip.conf 
+in asterisk the location of sip.conf is /etc/asterisk/sip.conf
+
+ 
+
+[newbie]
+type=friend
+disallow=all
+allow=alaw
+allow=ulaw
+allow=g729
+host=10.10.65.2 ; (jio sip proxy ip)
+fromdomain=10.10.65.2 ; (jio sip proxy ip)
+qualify=yes
+dtmfmode=rfc2833
+context=from-trunk  
+sendrpid=yes
+trustrpid=yes
+ 
+Step 4: Asterisk/Vicidial dialplan 
+In normal asterisk PBX
+
+exten => _X.,1,Set(CALLERID(num)=+911234567890) (example this my pilot no)
+exten => _X.,2,Dial(SIP/newbie/${EXTEN})
+exten => _X.,3,Hangup
+
+ In vicidial 
+
+exten => _X.,1,AGI(agi://127.0.0.1:4577/call_log)
+exten => _X.,2,Set(CALLERID(num)=+913340976070)
+exten => _X.,3,Dial(SIP/newbie/${EXTEN},,tTo)
+exten => _X.,4,Hangup
